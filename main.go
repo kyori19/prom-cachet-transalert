@@ -1,19 +1,19 @@
 package main
 
 import (
-	"net/http"
+  "net/http"
 
-	"github.com/gin-gonic/gin"
+  "github.com/gin-gonic/gin"
 )
 
 func main() {
-	r := gin.Default()
+  r := gin.Default()
 
-	r.GET("/api/v1/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
+  r.GET("/api/v1/ping", func(c *gin.Context) {
+    c.JSON(http.StatusOK, gin.H{
+      "message": "pong",
+    })
+  })
 
-	r.Run()
+  r.Run()
 }
