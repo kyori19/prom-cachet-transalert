@@ -1,6 +1,7 @@
 package main
 
 import (
+  "bytes"
   "log"
   "io/ioutil"
   "encoding/json"
@@ -20,7 +21,7 @@ type alert struct {
 }
 
 type component struct {
-  Component   int           `json:"id"`
+  Component   string        `json:"id"`
   Alert       alert         `json:"alert"`
   Status      int           `json:"status"`
 }
@@ -36,9 +37,14 @@ type webhook struct {
   Alerts      []alert       `json:"alerts"`
 }
 
-func reqcachet(c config, endpoint string, result *string) {
-  req, _ := http.NewRequest("GET", c.Domain + endpoint, nil)
+func reqcachet(c config, method string, endpoint string, result *string, body []byte) {
+  req, err := http.NewRequest(method, c.Domain + endpoint, bytes.NewBuffer(body))
+  if err != nil {
+    log.Fatal(err)
+    return
+  }
   req.Header.Set("X-Cachet-Token", c.Token)
+  req.Header.Set("Content-Type", "application/json")
 
   client := new(http.Client)
   res, err := client.Do(req)
@@ -77,16 +83,49 @@ func main() {
 
   log.Println("Checking cachet configuration...")
   var res string
-  reqcachet(c, "/api/v1/version", &res)
+  reqcachet(c, "GET", "/api/v1/version", &res, nil)
   log.Println(res)
   log.Println("Success.")
 
   r := gin.Default()
 
-  r.GET("/api/v1/ping", func(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
+  r.GET("/api/v1/ping", func(context *gin.Context) {
+    context.JSON(http.StatusOK, gin.H{
       "message": "pong",
     })
+  })
+
+  r.POST("/api/v1/alert", func(context *gin.Context) {
+    var req webhook
+    if err := context.ShouldBindJSON(&req); err != nil {
+      context.JSON(http.StatusBadRequest, gin.H{
+        "error": err.Error(),
+      })
+      return
+    }
+
+    if req.Version != "4" {
+      log.Println("[MAIN][WARN][alert] AlertManager json version mismatch.")
+      log.Println("[MAIN][WARN][alert] Supported version is 4. (recieved " + req.Version + ")")
+    }
+
+    for _, alert := range req.Alerts {
+      for _, component := range c.Components {
+        if alert.Labels.Instance == component.Alert.Labels.Instance &&
+            alert.Labels.Job == component.Alert.Labels.Job &&
+            alert.Status == component.Alert.Status {
+          data := map[string]int{
+            "status": component.Status,
+          }
+          b, _ := json.Marshal(&data)
+          var res string
+          reqcachet(c, "PUT", "/api/v1/components/" + component.Component, &res, b)
+          log.Println(res)
+        }
+      }
+    }
+
+    context.JSON(http.StatusAccepted, nil)
   })
 
   r.Run(":9136")
