@@ -1,0 +1,29 @@
+{
+  "cachet_instance" : "https://demo.cachethq.io",   # cachet domain without /
+  "cachet_token" : "",                      # cachet application token
+
+  "components" : [                          # cachet components
+    {
+      "id" : 1,                             # id of component which will be updated its status
+      "alert" : {                           # alertmanager alert object
+        "status" : "resolved",              # prometheus alert status(resolved/firing)
+        "labels" : {                        # prometheus instance labels
+          "instance" : "test",
+          "job" : "test_exporter"
+        }
+      },
+      "status" : 1                          # new status of cachet component(1-4)
+    },
+    {
+      "id" : 1,
+      "alert" : {
+        "status" : "firing",
+        "labels" : {
+          "instance" : "test",
+          "job" : "test_exporter"
+        }
+      },
+      "status" : 4
+    }
+  ]
+}
