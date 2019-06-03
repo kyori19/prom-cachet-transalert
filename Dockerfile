@@ -7,4 +7,5 @@ RUN go get
 RUN apk del git
 RUN go install github.com/kyori19/prom-cachet-transalert
 WORKDIR /
+EXPOSE 9136
 CMD ["prom-cachet-transalert"]
